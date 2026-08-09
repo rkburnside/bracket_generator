@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tournament Bracket Generator</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#181b22; --line:#2c313c; --text:#e8eaed;
+    --muted:#8b93a1; --accent:#d4a017; --win:#1f6f43;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:16px 22px;border-bottom:1px solid var(--line);
+    display:flex;flex-wrap:wrap;align-items:center;gap:14px;background:var(--bg)}
+  h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:13px}
+  button{background:var(--panel);color:var(--text);border:1px solid var(--line);
+    padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);color:#141414;border-color:var(--accent);font-weight:600}
+  #champ{font-size:14px;color:var(--accent);font-weight:600}
+  .setup{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+  textarea{width:340px;height:150px;background:var(--panel);color:var(--text);
+    border:1px solid var(--line);border-radius:8px;padding:11px;font-size:13px;
+    font-family:inherit;resize:vertical}
+  .setup .col{display:flex;flex-direction:column;gap:9px}
+  .hint{color:var(--muted);font-size:12px;max-width:280px;line-height:1.5}
+  .board{display:flex;gap:26px;padding:24px;overflow-x:auto;align-items:stretch}
+  .round{display:flex;flex-direction:column;justify-content:space-around;min-width:190px}
+  .rtitle{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);
+    margin-bottom:10px;text-align:center}
+  .match{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    margin:9px 0;overflow:hidden}
+  .slot{padding:9px 11px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--line);
+    transition:background .12s}
+  .slot:last-child{border-bottom:none}
+  .slot:hover{background:#232833}
+  .slot.empty,.slot.bye{color:var(--muted);cursor:default;font-style:italic}
+  .slot.empty:hover,.slot.bye:hover{background:transparent}
+  .slot.winner{background:var(--win);font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1>Tournament Bracket Generator</h1>
+  <span class="sub" id="count"></span>
+  <button id="reshuffle">Reshuffle seeding</button>
+  <button id="clear">Clear picks</button>
+  <span id="champ"></span>
+</header>
+
+<div class="setup">
+  <div class="col">
+    <textarea id="names" placeholder="Paste one name per line..."></textarea>
+    <button class="primary" id="gen">Randomize &amp; build bracket</button>
+  </div>
+  <div class="hint">
+    Paste one name per line, then build. Blank lines and duplicates are removed automatically.
+    If the count is not a power of two, byes are spread evenly through the first round and those
+    players advance automatically. Click a name to advance them; click again to undo.
+  </div>
+</div>
+
+<div class="board" id="board"></div>
+
+<script>
+let seeds = [];      // first-round slot order, "" means BYE
+let picks = {};      // "r-m" -> name
+
+function shuffle(a){
+  a = a.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function seedWithByes(players){
+  const n = players.length;
+  if(n < 2) return [];
+  let size = 2; while(size < n) size *= 2;
+  const matches = size/2, byes = size - n;
+  const byeMatch = new Set();
+  for(let i=0;i<byes;i++) byeMatch.add(Math.round(i*matches/byes));
+  const slots = [];
+  let p = 0;
+  for(let m=0;m<matches;m++){
+    if(byeMatch.has(m)) slots.push(players[p++], "");
+    else slots.push(players[p++], players[p++]);
+  }
+  return slots;
+}
+
+function roundNames(size){
+  const names = [];
+  for(let s=size; s>=2; s/=2){
+    if(s===2) names.push("Final");
+    else if(s===4) names.push("Semifinals");
+    else if(s===8) names.push("Quarterfinals");
+    else names.push("Round of " + s);
+  }
+  return names;
+}
+
+function pick(r,m){ return picks[r+"-"+m] || null; }
+
+function build(){
+  if(!seeds.length) return [];
+  const rounds = [];
+  const r0 = [];
+  for(let i=0;i<seeds.length;i+=2) r0.push([seeds[i]||null, seeds[i+1]||null]);
+  rounds.push(r0);
+  // auto-advance byes
+  r0.forEach((m,i)=>{
+    if(m[0] && !m[1]) picks["0-"+i] = m[0];
+    if(!m[0] && m[1]) picks["0-"+i] = m[1];
+  });
+  while(rounds[rounds.length-1].length > 1){
+    const prev = rounds[rounds.length-1], r = rounds.length, cur = [];
+    for(let i=0;i<prev.length;i+=2) cur.push([pick(r-1,i), pick(r-1,i+1)]);
+    rounds.push(cur);
+  }
+  rounds.forEach((ms,r)=>ms.forEach((m,i)=>{
+    const k=r+"-"+i;
+    if(picks[k] && !m.includes(picks[k])) delete picks[k];
+  }));
+  return rounds;
+}
+
+function render(){
+  const rounds = build();
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  if(!rounds.length){
+    document.getElementById("champ").textContent = "";
+    document.getElementById("count").textContent = "";
+    return;
+  }
+  const titles = roundNames(seeds.length);
+  rounds.forEach((matches,r)=>{
+    const col = document.createElement("div");
+    col.className = "round";
+    const t = document.createElement("div");
+    t.className = "rtitle";
+    t.textContent = titles[r] || ("Round " + (r+1));
+    col.appendChild(t);
+    matches.forEach((m,i)=>{
+      const box = document.createElement("div");
+      box.className = "match";
+      m.forEach((name,slotIdx)=>{
+        const s = document.createElement("div");
+        const isBye = (r===0 && seeds[i*2+slotIdx]==="");
+        const won = name && pick(r,i)===name;
+        s.className = "slot" + (isBye ? " bye" : (!name ? " empty" : (won ? " winner":"")));
+        s.textContent = isBye ? "BYE" : (name || "TBD");
+        if(name && !isBye){
+          s.onclick = ()=>{
+            if(pick(r,i)===name) delete picks[r+"-"+i];
+            else picks[r+"-"+i] = name;
+            render();
+          };
+        }
+        box.appendChild(s);
+      });
+      col.appendChild(box);
+    });
+    board.appendChild(col);
+  });
+  const c = pick(rounds.length-1, 0);
+  document.getElementById("champ").textContent = c ? ("Champion: " + c) : "";
+}
+
+function parseNames(){
+  const raw = document.getElementById("names").value.split("\n")
+    .map(s=>s.trim()).filter(Boolean);
+  const seen = new Set(), out = [];
+  raw.forEach(n=>{ const k=n.toLowerCase(); if(!seen.has(k)){seen.add(k); out.push(n);} });
+  return out;
+}
+
+function generate(){
+  const players = parseNames();
+  if(players.length < 2){ alert("Enter at least two names."); return; }
+  picks = {};
+  seeds = seedWithByes(shuffle(players));
+  const byes = seeds.filter(s=>s==="").length;
+  document.getElementById("count").textContent =
+    players.length + " players" + (byes ? " \u00b7 " + byes + (byes===1?" bye":" byes") : " \u00b7 no byes");
+  render();
+}
+
+document.getElementById("gen").onclick = generate;
+document.getElementById("reshuffle").onclick = ()=>{ if(seeds.length) generate(); };
+document.getElementById("clear").onclick = ()=>{ picks = {}; render(); };
+</script>
+</body>
+</html>

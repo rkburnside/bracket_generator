@@ -1,0 +1,59 @@
+<%- include('_head', { title: t.name + ' — lobby', refresh: 15 }) %>
+
+<h1><%= t.name %></h1>
+<p class="lede">
+  Game code <strong class="bigcode"><%= t.code %></strong>
+  <%= t.double_elim ? '· consolation bracket on' : '· single elimination' %>
+</p>
+
+<section class="card qrcard">
+  <h2>Scan to join</h2>
+  <img class="qr" src="/t/<%= t.code %>/qr.svg" alt="QR code to join <%= t.name %>" width="240" height="240">
+  <p class="muted small">Or go to <strong><%= joinUrl %></strong></p>
+</section>
+
+<section class="card">
+  <h2><%= players.length %> player<%= players.length === 1 ? '' : 's' %> joined
+    <% if (players.length >= 2) { %>
+      <span class="muted small">· <%= byes ? byes + (byes === 1 ? ' bye' : ' byes') : 'no byes' %> in round 1</span>
+    <% } %>
+  </h2>
+  <% if (!players.length) { %>
+    <p class="muted">Waiting for the first player to scan in.</p>
+  <% } else { %>
+    <ul class="namelist">
+      <% players.forEach(function(p){ %>
+        <li<%= me && p.id === me.id ? ' class="you"' : '' %>>
+          <span><%= p.name %></span>
+          <% if (isAdmin) { %>
+            <form method="post" action="/t/<%= t.code %>/players/<%= p.id %>/remove">
+              <button class="tiny" type="submit" aria-label="Remove <%= p.name %>">Remove</button>
+            </form>
+          <% } %>
+        </li>
+      <% }); %>
+    </ul>
+  <% } %>
+  <% if (!me) { %><a class="button" href="/j/<%= t.code %>">Add yourself</a><% } %>
+</section>
+
+<% if (isAdmin) { %>
+  <section class="card">
+    <h2>Organizer</h2>
+    <form method="post" action="/t/<%= t.code %>/start">
+      <button class="primary wide" type="submit" <%= players.length < 2 ? 'disabled' : '' %>>
+        Draw the bracket
+      </button>
+    </form>
+    <p class="muted small">Players are seeded at random. If the field is not a power of two,
+    the extra players get a first-round bye.</p>
+    <details>
+      <summary>Organizer link for another device</summary>
+      <p class="muted small break">Open this on any device to control the game from there.
+      Anyone with the link can report results, so keep it to yourself.</p>
+      <p class="break"><code>/t/<%= t.code %>/admin?key=<%= t.admin_key %></code></p>
+    </details>
+  </section>
+<% } %>
+
+<%- include('_foot') %>

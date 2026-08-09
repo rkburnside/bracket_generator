@@ -1,0 +1,43 @@
+<%- include('_head', { title: 'Join ' + t.name, refresh: me ? 10 : null }) %>
+
+<h1><%= t.name %></h1>
+<p class="lede">Game code <strong><%= t.code %></strong></p>
+
+<% if (error) { %><p class="error"><%= error %></p><% } %>
+
+<% if (t.status !== 'lobby') { %>
+  <section class="card">
+    <h2>The draw is done</h2>
+    <p>This game has already started. <a href="/t/<%= t.code %>">Follow the bracket</a>.</p>
+  </section>
+<% } else if (me) { %>
+  <section class="card">
+    <h2>You're in</h2>
+    <p>Signed in as <strong><%= me.name %></strong>. Hang tight — the organizer starts
+    the draw once everyone has joined. This page updates itself.</p>
+    <a class="button" href="/t/<%= t.code %>">View the lobby</a>
+  </section>
+<% } else { %>
+  <section class="card">
+    <h2>Enter your name</h2>
+    <form method="post" action="/j/<%= t.code %>" class="stack">
+      <input name="name" maxlength="40" placeholder="Your name" autocomplete="name" required autofocus>
+      <button class="primary" type="submit">Join the game</button>
+    </form>
+  </section>
+<% } %>
+
+<section class="card">
+  <h2><%= players.length %> in so far</h2>
+  <% if (!players.length) { %>
+    <p class="muted">Nobody yet — be the first.</p>
+  <% } else { %>
+    <ul class="namelist">
+      <% players.forEach(function(p){ %>
+        <li<%= me && p.id === me.id ? ' class="you"' : '' %>><%= p.name %></li>
+      <% }); %>
+    </ul>
+  <% } %>
+</section>
+
+<%- include('_foot') %>

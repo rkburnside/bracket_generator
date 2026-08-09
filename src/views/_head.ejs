@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title><%= title %></title>
+<link rel="stylesheet" href="/app.css">
+<% if (typeof refresh !== 'undefined' && refresh) { %><meta http-equiv="refresh" content="<%= refresh %>"><% } %>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="/">Bracket</a>
+  <% if (t) { %>
+    <a class="code" href="/t/<%= t.code %>"><%= t.code %></a>
+    <span class="tname"><%= t.name %></span>
+  <% } %>
+</header>
+<main>

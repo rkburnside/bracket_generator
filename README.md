@@ -1,79 +1,117 @@
 # Tournament Bracket Generator
 
-A single-file, zero-dependency single-elimination bracket generator. Paste a list of
-names, build a randomized bracket, and click through the winners.
+A mobile-first tournament bracket app. The organizer creates a game, players scan a
+QR code and type their own name, and the bracket is played one round per page.
+Everything is stored in SQLite, so a closed tab, a dead phone, or a server restart
+does not lose the tournament.
 
-Open `index.html` in any browser — there is no build step, no server, and no
-external assets.
+```
+npm install
+npm start          # http://localhost:3000
+npm test
+```
 
-## Current features
+## How a game runs
 
-- **Name entry** — one name per line in a textarea. Blank lines are dropped and
-  duplicates are removed case-insensitively.
-- **Randomized seeding** — names are shuffled (Fisher–Yates) before being placed
-  into first-round slots.
-- **Automatic byes** — the field is padded up to the next power of two. Byes are
-  spread evenly across the first round, and the player facing a bye is advanced
-  automatically.
-- **Click to advance** — clicking a name marks it the winner of that match and
-  moves it into the next round. Clicking the same name again undoes the pick.
-  Downstream picks that are no longer reachable are cleared.
-- **Round labels** — Final, Semifinals, Quarterfinals, and "Round of N" above that.
-- **Header status** — player count and bye count, plus the champion once the final
-  is decided.
-- **Controls** — `Randomize & build bracket`, `Reshuffle seeding` (rebuilds with a
-  new random draw), and `Clear picks` (keeps the draw, drops all winners).
+1. **Create.** The organizer opens `/`, names the tournament, and optionally ticks
+   **Consolation bracket**. They get a four-character game code such as `KP7M`.
+2. **Join.** The lobby shows a QR code pointing at `/j/KP7M`. Players scan it,
+   type their name, and they are in. The lobby refreshes itself as people arrive.
+3. **Draw.** The organizer taps *Draw the bracket*. The field is shuffled and
+   seeded; if the count is not a power of two the extra players get a first-round
+   bye and advance automatically.
+4. **Play.** Each round is its own page — `/t/KP7M/r/W/2` — listing only that
+   round's matches. The organizer taps the winner; tapping the same name again
+   undoes it. Everyone else can watch the same page live.
+5. **Finish.** The champion banner appears once the final (or the grand final, in
+   double elimination) is decided.
 
-## Files
+## Consolation bracket
 
-| File | Purpose |
-| --- | --- |
-| `index.html` | The entire app: markup, CSS, and JS in one file. |
-| `README.md` | This document. |
-| `LICENSE` | Project license. |
+Ticking the box makes the tournament **double elimination**:
 
-## Implementation notes
+- Losing a match drops you into the consolation (losers) bracket instead of
+  knocking you out.
+- The consolation bracket alternates between rounds where its own survivors play
+  each other and *drop-in* rounds where they meet the players just knocked out of
+  the winners bracket. The drop-in order is reversed on alternate rounds so
+  players are less likely to immediately replay whoever knocked them down.
+- The **grand final** is the winners-bracket champion against the consolation
+  champion. If the consolation champion wins it, a **bracket reset** is played —
+  the winners-bracket champion has only lost once at that point, so they get their
+  second life too. If the winners-bracket champion wins the first grand final, the
+  reset match never appears.
 
-State lives in two module-level variables:
+Byes flow through the consolation bracket correctly: the "loser" of a walkover is
+nobody, so the consolation match it feeds simply advances its one real player.
 
-- `seeds` — a flat array of first-round slot occupants, in order. An empty string
-  `""` marks a BYE slot.
-- `picks` — a map of `"<round>-<match>"` → winning name.
+## Routes
 
-`build()` derives the full round structure from `seeds` and `picks` on every
-render, so there is no separate bracket tree to keep in sync. `render()` rebuilds
-the DOM from scratch after each interaction.
+| Route | Who | What |
+| --- | --- | --- |
+| `GET /` | anyone | Create a game, or join by typing a code |
+| `POST /tournaments` | anyone | Create; the creator's browser gets the organizer cookie |
+| `GET /j/:code` | players | The QR target — enter your name |
+| `GET /t/:code` | anyone | Lobby while open; redirects to the live round once started |
+| `GET /t/:code/qr.svg` | anyone | The join QR code |
+| `GET /t/:code/r/:bracket/:round` | anyone | One round, one page (`W` winners, `L` consolation, `G` grand final) |
+| `POST /t/:code/r/:bracket/:round/pick` | organizer | Report or clear a result |
+| `GET /t/:code/bracket` | anyone | Every round side by side |
+| `POST /t/:code/start` · `/reshuffle` · `/reopen` | organizer | Draw, re-draw, or reopen the lobby |
+| `GET /t/:code/admin?key=…` | organizer | Claim organizer rights on a second device |
 
-Key functions:
+## Who can do what
 
-| Function | Role |
-| --- | --- |
-| `parseNames()` | Trim, drop blanks, dedupe. |
-| `shuffle(a)` | Fisher–Yates shuffle, returns a copy. |
-| `seedWithByes(players)` | Pads to the next power of two and distributes byes. |
-| `build()` | Produces `rounds[][]` from `seeds` + `picks`, auto-advances byes, prunes stale picks. |
-| `render()` | Draws the board and the champion line. |
-| `roundNames(size)` | Labels for each column. |
+- The **organizer** is whoever created the game; their browser holds an
+  `adm_<code>` cookie containing the game's admin key. The lobby shows an
+  organizer link that transfers those rights to another device — anyone holding
+  that link can report results, so it should not be shared around.
+- **Players** get a `ply_<code>` cookie so the app can recognise them, highlight
+  their own name in the bracket, and stop them joining twice.
+- **Everyone else** can watch any game whose code they know. Spectator pages
+  refresh on a timer; the organizer's pages do not, so a tap is never interrupted.
+
+## Layout
+
+```
+src/bracket.js        bracket maths — pure functions, no I/O
+src/db.js             SQLite schema and prepared statements
+src/server.js         Express routes
+src/views/*.ejs       server-rendered pages
+public/app.css        mobile-first stylesheet
+test/bracket.test.js  bracket maths, fields of 2–33 players
+test/server.test.js   end-to-end HTTP walkthrough
+legacy/single-page.html   the original standalone prototype
+```
+
+### Data model
+
+Three tables: `tournaments`, `players`, and `results` (one row per reported
+match). The bracket structure is **not** stored. `src/bracket.js` derives the
+whole match graph from the player count on every request and resolves it against
+the reported results, which is why a result can be changed at any point and every
+downstream match re-resolves — a pick that is no longer reachable is simply
+ignored rather than left stranded.
+
+Matches are addressed by a stable key: `W2-0` is the first match of winners round
+two, `L3-1` the second match of consolation round three, `G1-0` the grand final.
+
+## Configuration
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `3000` | Listen port |
+| `DB_PATH` | `data/brackets.db` | SQLite file; the directory is created on boot |
+| `PUBLIC_URL` | request host | Base URL encoded in the QR code — set this behind a proxy or tunnel, otherwise phones get an unreachable `localhost` link |
 
 ## Known limitations
 
-These are the gaps to address as the project develops:
-
-- **Not mobile friendly.** The layout is a horizontally scrolling flex board with
-  fixed-width columns and a fixed-width textarea; it is built for a desktop
-  viewport. This is the main thing to fix.
-- **No persistence.** Reloading the page loses the bracket entirely.
-- **No sharing or export.** No URL state, no image or print output.
-- **Single-elimination only.** No double elimination, round robin, pools, or
-  third-place match.
-- **No manual seeding.** Seeding is always random; you cannot pin or rank players.
-- **No connector lines** between matches, so the bracket structure reads only by
-  column alignment.
-- **No accessibility affordances** — slots are `div`s with click handlers, not
-  focusable or keyboard-operable, and there are no ARIA roles.
-- **`alert()` for validation** rather than inline messaging.
-
-## Roadmap
-
-Mobile-friendly layout first, then persistence and sharing, then additional
-tournament formats.
+- Results are reported by the organizer only; players cannot self-report.
+- Pages poll on a refresh timer rather than pushing updates over a socket.
+- Seeding is random — there is no way to rank or pin players, and no way to edit
+  the draw once it is made short of re-drawing it.
+- No third-place match in single elimination (the consolation bracket covers the
+  double-elimination case instead).
+- No accounts, so a cleared cookie means losing organizer rights unless the
+  organizer link was saved.
+- Nothing is ever deleted; old tournaments accumulate in the database.

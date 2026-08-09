@@ -1,0 +1,29 @@
+{
+  "name": "bracket-generator",
+  "version": "1.0.0",
+  "description": "Mobile-friendly tournament bracket generator with QR join codes and an optional consolation bracket",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rkburnside/bracket_generator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rkburnside/bracket_generator/issues"
+  },
+  "homepage": "https://github.com/rkburnside/bracket_generator#readme",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cookie-parser": "^1.4.7",
+    "ejs": "^6.0.1",
+    "express": "^5.2.1",
+    "qrcode": "^1.5.4"
+  },
+  "private": true
+}

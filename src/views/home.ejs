@@ -1,0 +1,33 @@
+<%- include('_head', { title: 'Bracket Generator' }) %>
+
+<h1>Tournament brackets</h1>
+<p class="lede">Create a game, put the QR code on a screen or a wall, and let players
+sign themselves in from their phones.</p>
+
+<% if (error) { %><p class="error"><%= error %></p><% } %>
+
+<section class="card">
+  <h2>Join a game</h2>
+  <form method="post" action="/join" class="stack">
+    <label for="code">Game code</label>
+    <input id="code" name="code" class="codeinput" autocapitalize="characters"
+           autocomplete="off" maxlength="6" placeholder="ABCD" required>
+    <button class="primary" type="submit">Join</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Start a new game</h2>
+  <form method="post" action="/tournaments" class="stack">
+    <label for="name">Tournament name</label>
+    <input id="name" name="name" maxlength="80" placeholder="Friday Night Doubles" required>
+    <label class="check">
+      <input type="checkbox" name="double_elim">
+      <span>Consolation bracket <small>Double elimination — one loss drops you into the
+      consolation bracket instead of knocking you out.</small></span>
+    </label>
+    <button class="primary" type="submit">Create game</button>
+  </form>
+</section>
+
+<%- include('_foot') %>

@@ -11,6 +11,9 @@ npm start          # http://localhost:3000
 npm test
 ```
 
+To put it online, see **[DEPLOY.md](DEPLOY.md)** — one Railway service plus a
+volume, no other infrastructure.
+
 ## How a game runs
 
 1. **Create.** The organizer opens `/`, names the tournament, and optionally ticks
@@ -103,6 +106,12 @@ two, `L3-1` the second match of consolation round three, `G1-0` the grand final.
 | `PORT` | `3000` | Listen port |
 | `DB_PATH` | `data/brackets.db` | SQLite file; the directory is created on boot |
 | `PUBLIC_URL` | request host | Base URL encoded in the QR code — set this behind a proxy or tunnel, otherwise phones get an unreachable `localhost` link |
+| `RAILWAY_VOLUME_MOUNT_PATH` | unset | Set by Railway; when present and `DB_PATH` is not, the database lives on the mounted volume |
+| `RAILWAY_PUBLIC_DOMAIN` | unset | Set by Railway; used for the QR target when `PUBLIC_URL` is not set |
+
+`GET /healthz` returns `{"ok":true,"db":"…"}` once the process is up and the
+database opens — it is what the platform health check watches, and the quickest
+way to confirm which database file a deployment is actually using.
 
 ## Known limitations
 

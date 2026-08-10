@@ -9,6 +9,9 @@ const store = require('./db');
 const bracket = require('./bracket');
 
 const app = express();
+// Behind Railway's router (and any other reverse proxy) the TLS termination
+// happens upstream, so req.protocol has to come from X-Forwarded-Proto.
+app.set('trust proxy', true);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: false }));
@@ -22,13 +25,24 @@ app.use((req, res, next) => {
 
 const YEAR = 365 * 24 * 60 * 60 * 1000;
 
+// Identity cookies. `secure` is set whenever the app knows it is served over
+// HTTPS (Railway always is), so the organizer key never travels in the clear.
+const HTTPS = /^https:/.test(process.env.PUBLIC_URL || '') || !!process.env.RAILWAY_PUBLIC_DOMAIN;
+const COOKIE = { httpOnly: true, sameSite: 'lax', maxAge: YEAR, secure: HTTPS };
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Absolute base URL for this deployment, used for the QR code target. */
+/**
+ * Absolute base URL for this deployment, used for the QR code target.
+ * PUBLIC_URL wins; otherwise Railway's own domain variable is used so a fresh
+ * deploy produces scannable codes with no configuration at all.
+ */
 function baseUrl(req) {
   if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/$/, '');
+  const railway = process.env.RAILWAY_PUBLIC_DOMAIN;
+  if (railway) return `https://${railway}`;
   return `${req.protocol}://${req.get('host')}`;
 }
 
@@ -93,7 +107,7 @@ app.post('/tournaments', (req, res) => {
   const name = String(req.body.name || '').trim() || 'Tournament';
   const doubleElim = req.body.double_elim === 'on';
   const t = store.createTournament(name.slice(0, 80), doubleElim);
-  res.cookie(`adm_${t.code}`, t.admin_key, { httpOnly: true, sameSite: 'lax', maxAge: YEAR });
+  res.cookie(`adm_${t.code}`, t.admin_key, COOKIE);
   res.redirect(`/t/${t.code}`);
 });
 
@@ -131,7 +145,7 @@ app.post('/j/:code', loadTournament, (req, res) => {
     if (String(err.message).includes('UNIQUE')) return fail(`${name} is already on the list — pick another name.`);
     throw err;
   }
-  res.cookie(`ply_${t.code}`, token, { httpOnly: true, sameSite: 'lax', maxAge: YEAR });
+  res.cookie(`ply_${t.code}`, token, COOKIE);
   res.redirect(`/j/${t.code}`);
 });
 
@@ -161,7 +175,7 @@ app.get('/t/:code/admin', loadTournament, (req, res) => {
   if (String(req.query.key || '') !== t.admin_key) {
     return res.status(403).render('error', { message: 'That organizer link is not valid for this game.' });
   }
-  res.cookie(`adm_${t.code}`, t.admin_key, { httpOnly: true, sameSite: 'lax', maxAge: YEAR });
+  res.cookie(`adm_${t.code}`, t.admin_key, COOKIE);
   res.redirect(`/t/${t.code}`);
 });
 
@@ -257,11 +271,24 @@ app.get('/t/:code/bracket', loadTournament, (req, res) => {
 
 // ---------------------------------------------------------------------------
 
+// Deployment health check: confirms the process is up *and* that the database
+// on the mounted volume is readable.
+app.get('/healthz', (req, res) => {
+  try {
+    store.db.prepare('SELECT count(*) AS n FROM tournaments').get();
+    res.json({ ok: true, db: store.DB_PATH });
+  } catch (err) {
+    res.status(503).json({ ok: false, error: String(err.message) });
+  }
+});
+
 app.use((req, res) => res.status(404).render('error', { message: 'Page not found.' }));
 
 if (require.main === module) {
   const port = Number(process.env.PORT || 3000);
-  app.listen(port, () => console.log(`Bracket generator listening on http://localhost:${port}`));
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Bracket generator listening on port ${port} (db: ${store.DB_PATH})`);
+  });
 }
 
 module.exports = app;

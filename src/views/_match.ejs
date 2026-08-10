@@ -1,0 +1,27 @@
+<%
+  // locals: m (resolved match), interactive (bool), me (player or null)
+  var pickable = interactive && isAdmin && m.playable;
+  function slotClass(p) {
+    if (p === null) return 'slot bye';
+    if (p === undefined) return 'slot tbd';
+    if (!m.decided) return 'slot';
+    return m.winner && m.winner.id === p.id ? 'slot won' : 'slot lost';
+  }
+  function slotText(p) { return p === null ? 'BYE' : p === undefined ? 'TBD' : p.name; }
+%>
+<div class="match<%= m.decided ? ' done' : '' %>">
+  <% [m.a, m.b].forEach(function(p){ %>
+    <% if (pickable) { %>
+      <form method="post" action="/t/<%= t.code %>/r/<%= m.bracket %>/<%= m.round %>/pick">
+        <input type="hidden" name="match_key" value="<%= m.key %>">
+        <input type="hidden" name="winner_id" value="<%= p.id %>">
+        <button type="submit" class="<%= slotClass(p) %><%= me && me.id === p.id ? ' me' : '' %>">
+          <%= p.name %>
+        </button>
+      </form>
+    <% } else { %>
+      <div class="<%= slotClass(p) %><%= me && p && p.id === me.id ? ' me' : '' %>"><%= slotText(p) %></div>
+    <% } %>
+  <% }) %>
+  <% if (m.auto) { %><p class="note">Advances on a bye</p><% } %>
+</div>

@@ -1,0 +1,133 @@
+:root{
+  --bg:#0f1115; --panel:#181b22; --line:#2c313c; --text:#e8eaed;
+  --muted:#8b93a1; --accent:#d4a017; --win:#1f6f43; --danger:#e5674b;
+  --tap:48px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);font-size:16px;line-height:1.45;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+main{max-width:720px;margin:0 auto;padding:18px 16px 48px}
+
+/* ---- header --------------------------------------------------------- */
+.bar{
+  display:flex;align-items:center;gap:10px;padding:12px 16px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5;
+  padding-top:calc(12px + env(safe-area-inset-top));
+}
+.brand{color:var(--text);text-decoration:none;font-weight:700;letter-spacing:.4px}
+.code{
+  color:var(--accent);text-decoration:none;font-weight:700;letter-spacing:2px;
+  border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:14px;
+}
+.tname{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---- type ----------------------------------------------------------- */
+h1{font-size:24px;margin:18px 0 6px;font-weight:650;letter-spacing:.2px}
+h2{font-size:16px;margin:0 0 10px;font-weight:600}
+.lede{color:var(--muted);margin:0 0 18px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.break{overflow-wrap:anywhere}
+.bigcode{color:var(--accent);letter-spacing:3px;font-size:20px}
+.error{color:var(--danger);border:1px solid var(--danger);border-radius:8px;padding:10px 12px}
+.champ{
+  background:var(--win);border-radius:10px;padding:12px 14px;margin:0 0 16px;
+  font-weight:650;text-align:center;
+}
+.note{margin:6px 10px 8px;color:var(--muted);font-size:12px}
+
+/* ---- cards & forms --------------------------------------------------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 16px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+label{font-size:13px;color:var(--muted)}
+input[type=text],input:not([type]){width:100%}
+input{
+  width:100%;background:#12151b;color:var(--text);border:1px solid var(--line);
+  border-radius:8px;padding:12px;font-size:16px;font-family:inherit;min-height:var(--tap);
+}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.codeinput{letter-spacing:6px;text-transform:uppercase;font-size:22px;text-align:center}
+.check{display:flex;gap:10px;align-items:flex-start;color:var(--text);font-size:15px}
+.check input{width:22px;height:22px;min-height:0;margin-top:2px;flex:none}
+.check small{display:block;color:var(--muted);font-size:13px}
+
+button,.button{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--panel);color:var(--text);border:1px solid var(--line);
+  padding:12px 16px;border-radius:8px;font-size:15px;font-family:inherit;
+  cursor:pointer;text-decoration:none;min-height:var(--tap);
+}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);color:#141414;border-color:var(--accent);font-weight:650}
+button.wide{width:100%}
+button.tiny{min-height:34px;padding:4px 10px;font-size:12px;color:var(--muted)}
+details summary{cursor:pointer;color:var(--muted);font-size:14px;margin-top:12px}
+code{background:#12151b;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:12px}
+
+/* ---- lists ----------------------------------------------------------- */
+.namelist{list-style:none;margin:0;padding:0}
+.namelist li{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 2px;border-bottom:1px solid var(--line);
+}
+.namelist li:last-child{border-bottom:none}
+.namelist li.you{color:var(--accent);font-weight:600}
+.namelist form{margin:0}
+
+/* ---- QR -------------------------------------------------------------- */
+.qrcard{text-align:center}
+.qr{width:min(260px,70vw);height:auto;background:#fff;padding:10px;border-radius:10px}
+
+/* ---- round navigation ------------------------------------------------ */
+.rounds{
+  display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.rounds::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;padding:8px 12px;border:1px solid var(--line);border-radius:999px;
+  color:var(--muted);text-decoration:none;font-size:13px;white-space:nowrap;
+}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#141414;font-weight:600}
+.chip.now{border-color:var(--accent);color:var(--accent)}
+
+/* ---- matches --------------------------------------------------------- */
+.matches{display:flex;flex-direction:column;gap:12px}
+.match{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.match form{margin:0}
+.match.done{border-color:#39404e}
+.slot{
+  display:flex;align-items:center;width:100%;text-align:left;
+  padding:14px;font-size:16px;border:none;border-radius:0;
+  border-bottom:1px solid var(--line);background:transparent;color:var(--text);min-height:var(--tap);
+}
+.match form:last-of-type .slot,.match > .slot:last-child{border-bottom:none}
+button.slot:active{background:#232833}
+.slot.won{background:var(--win);font-weight:650}
+.slot.lost{color:var(--muted);text-decoration:line-through}
+.slot.bye,.slot.tbd{color:var(--muted);font-style:italic}
+.slot.me{box-shadow:inset 3px 0 0 var(--accent)}
+
+.pager{display:flex;justify-content:space-between;gap:10px;margin:20px 0}
+.pager .button{flex:1}
+
+/* ---- full bracket overview ------------------------------------------- */
+.board{display:flex;gap:16px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x proximity}
+.board .column{flex:none;width:min(240px,72vw);scroll-snap-align:start}
+.rtitle{
+  font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);
+  text-align:center;margin-bottom:10px;
+}
+.rtitle a{color:inherit;text-decoration:none}
+.board .match{margin-bottom:10px}
+.board .slot{padding:10px 12px;font-size:14px;min-height:0}
+
+@media (min-width:600px){
+  main{padding-top:24px}
+  h1{font-size:28px}
+}

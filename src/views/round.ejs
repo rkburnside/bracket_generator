@@ -1,0 +1,54 @@
+<%- include('_head', { title: round.label + ' — ' + t.name, refresh: isAdmin ? null : 20 }) %>
+
+<% if (v.champion) { %>
+  <p class="champ">🏆 <%= v.champion.name %> wins <%= t.name %></p>
+<% } %>
+
+<nav class="rounds" aria-label="Rounds">
+  <% v.rounds.forEach(function(r, i){ %>
+    <a class="chip<%= i === idx ? ' on' : '' %><%= i === current && i !== idx ? ' now' : '' %>"
+       href="<%= roundPath(r) %>"><%= r.label %></a>
+  <% }); %>
+  <a class="chip" href="/t/<%= t.code %>/bracket">Full bracket</a>
+</nav>
+
+<h1><%= round.label %></h1>
+<p class="lede">
+  <%= round.group %> bracket ·
+  <%= round.matches.filter(function(m){ return m.playable; }).length %> match<%=
+      round.matches.filter(function(m){ return m.playable; }).length === 1 ? '' : 'es' %>
+  <% if (isAdmin) { %>· tap a name to advance them, tap again to undo<% } %>
+</p>
+
+<% if (!isAdmin) { %>
+  <p class="muted small">Watching live. Only the organizer can report results.</p>
+<% } %>
+
+<div class="matches">
+  <% round.matches.forEach(function(m){ if (m.void) return; %>
+    <%- include('_match', { m: m, interactive: true, me: me }) %>
+  <% }); %>
+</div>
+
+<nav class="pager">
+  <% if (prev) { %><a class="button" href="<%= roundPath(prev) %>">← <%= prev.label %></a><% } %>
+  <% if (next) { %><a class="button" href="<%= roundPath(next) %>"><%= next.label %> →</a><% } %>
+</nav>
+
+<% if (isAdmin) { %>
+  <section class="card">
+    <h2>Organizer</h2>
+    <div class="row">
+      <form method="post" action="/t/<%= t.code %>/reshuffle"
+            onsubmit="return confirm('Re-draw the bracket? All reported results are lost.')">
+        <button type="submit">Re-draw bracket</button>
+      </form>
+      <form method="post" action="/t/<%= t.code %>/reopen"
+            onsubmit="return confirm('Reopen the lobby? All reported results are lost.')">
+        <button type="submit">Reopen lobby</button>
+      </form>
+    </div>
+  </section>
+<% } %>
+
+<%- include('_foot') %>

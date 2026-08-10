@@ -1,0 +1,22 @@
+<%- include('_head', { title: t.name + ' — full bracket' }) %>
+
+<h1>Full bracket</h1>
+<p class="lede">
+  <%= v.players.length %> players ·
+  <%= v.byes ? v.byes + (v.byes === 1 ? ' bye' : ' byes') : 'no byes' %> ·
+  <%= v.doubleElim ? 'consolation bracket' : 'single elimination' %>
+</p>
+<% if (v.champion) { %><p class="champ">🏆 <%= v.champion.name %></p><% } %>
+
+<div class="board">
+  <% v.rounds.forEach(function(r){ %>
+    <section class="column">
+      <h2 class="rtitle"><a href="<%= roundPath(r) %>"><%= r.label %></a></h2>
+      <% r.matches.forEach(function(m){ if (m.void) return; %>
+        <%- include('_match', { m: m, interactive: false, me: null }) %>
+      <% }); %>
+    </section>
+  <% }); %>
+</div>
+
+<%- include('_foot') %>

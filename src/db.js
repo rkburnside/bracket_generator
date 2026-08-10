@@ -4,7 +4,13 @@ const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'brackets.db');
+// Explicit DB_PATH wins. Otherwise, if a Railway volume is mounted, put the
+// database on it — anything outside the volume is wiped on every deploy.
+const DB_PATH =
+  process.env.DB_PATH ||
+  (process.env.RAILWAY_VOLUME_MOUNT_PATH
+    ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'brackets.db')
+    : path.join(__dirname, '..', 'data', 'brackets.db'));
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
